@@ -24,5 +24,5 @@ ai_survey1 <- read_csv("how-do-people-feel-about-ai-main/262400371_Public Attitu
 #ai_survey1 <- ai_survey1 %>%
 #  filter(is.na(RS_Sex) | RS_Sex != 3) %>%
 #  filter(CS_Age != "16")
-summary(ai_survey1)
+str(ai_survey1)
 ```
