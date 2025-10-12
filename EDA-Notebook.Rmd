@@ -18,7 +18,11 @@ towards various use cases of Artificial Intelligence.
 Here's a brief summary of the data set:
 ```{r}
 library(readr)
-ai_survey <- read_csv("how-do-people-feel-about-ai-main/Descriptive analysis_How do people feel about AI.Rmd")
-problems(ai_survey)
-#summary(ai_survey)
+ai_survey1 <- read_csv("how-do-people-feel-about-ai-main/262400371_Public Attitudes to AI Raw Data NA (1).csv")
+# Prep data
+# Remove ppt identifying as 'other' and remove 16 year old 
+#ai_survey1 <- ai_survey1 %>%
+#  filter(is.na(RS_Sex) | RS_Sex != 3) %>%
+#  filter(CS_Age != "16")
+summary(ai_survey1)
 ```
