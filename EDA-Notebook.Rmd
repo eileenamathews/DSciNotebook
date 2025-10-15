@@ -10,10 +10,13 @@ output: html_document
 
 ## Introduction
 
-This Notebook aims to replicate some of the graphical results found in the [How do people feel about AI?](https://github.com/AdaLovelaceInstitute/how-do-people-feel-about-ai) report by the [Ada Lovelace Institute](https://www.adalovelaceinstitute.org/).
+In recent years, artificial intelligence (AI) has undergone a profound shift in public perception. Once seen primarily as a source of uncertainty or even risk, AI is now becoming something people feel increasingly comfortable with—if not socially or professionally expected to use. From writing assistants and chatbots to algorithmic recommendations in education, finance, and entertainment, AI has become an embedded feature of everyday life. While AI is often discussed through the lens of technical innovation, less attention has been given to how ordinary people experience its integration into their daily routines, decision-making, and institutional contexts.
 
-The Ada Lovelace Institute survey is a database of survey results taken between November and December 2022 about the attitudes
-towards various use cases of Artificial Intelligence.
+To ground our analysis in real-world evidence, we draw on the Public Attitudes to AI dataset produced by the Ada Lovelace Institute in the United Kingdom. This nationally representative survey of over 4,000 UK adults provides insight into public perceptions of AI across 17 application domains, ranging from facial recognition to healthcare triage and welfare eligibility. Unlike purely technical assessments, this dataset centers the public’s trust, perceived benefits, concerns, and expectations of governance—making it uniquely suitable for social inquiry into AI’s impact on socidety. The transparency of its methodology, including sampling, weighting, and question design, positions it as a robust foundation for understanding public sentiment at a pivotal moment in AI adoption.
+
+Our interest is also informed by emerging research such as Marc Zao-Sanders’ work, “How People Are Really Using Generative AI Now,” featured in the Harvard Business Review. His findings challenge popular narratives by revealing that individuals use AI for personal and professional purposes at around equal rates. 
+
+This raises some of the interesting questions our project seeks to explore: How aware are people of AI in their everyday environments? Do they trust institutions and individuals to use it responsibly? How do attitudes differ across demographic or experiential lines? By analyzing public attitudes through this dataset, we aim to contribute to a growing understanding of how societies negotiate the benefist and risks of AI.
 
 Here's a brief summary of the data set:
 ```{r}
