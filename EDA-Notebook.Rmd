@@ -29,3 +29,37 @@ ai_survey1 <- read_csv("how-do-people-feel-about-ai-main/262400371_Public Attitu
 #  filter(CS_Age != "16")
 str(ai_survey1)
 ```
+
+## PRELIMINARY EXPLORATION
+One variable that interested our group was how comfortable (or uncomfortable) people felt about being evaluated by AI during the job application process. While general attitudes toward AI tend to focus on abstract benefits like efficiency or fairness, the hiring context makes the technology personal. 
+
+To explore this, we focused on the BENB_JOB series, which asks respondents to select perceived benefits of AI in determining job eligibility. We aimed to understand how people negotiate the tension between potential advantages (such as reducing human bias) and potential discomfort (such as feeling misrepresented or dehumanized by automated systems).
+
+```{r}
+library(scales)
+
+top8 <- overall_ben %>% slice_max(pct, n = 8) %>% pull(benefit)
+
+# Overall
+overall_ben %>%
+  filter(benefit %in% top8) %>%
+  ggplot(aes(reorder(benefit, pct), pct)) +
+  geom_col() + coord_flip() +
+  scale_y_continuous(labels = percent) +
+  labs(x = NULL, y = "Weighted % selecting",
+       title = "Perceived benefits of AI in hiring (overall)")
+
+# Gender comparison for the same top 8
+ben_by_gender %>%
+  filter(benefit %in% top8) %>%
+  ggplot(aes(rs_sex, pct, fill = rs_sex)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~benefit, ncol = 2, scales = "free_y") +
+  scale_y_continuous(labels = percent) +
+  labs(x = NULL, y = "Weighted % selecting", fill = NULL,
+       title = "Benefits of AI in hiring by gender") +
+  theme(legend.position = "bottom")
+```
+The graph indicates that people recognize certain practical advantages to using AI in hiring, particularly when it comes to making recruiters’ jobs easier and reducing human bias. These benefits received the highest levels of agreement, suggesting that the public sees AI as potentially useful for improving process efficiency and fairness.
+
+However, there is noticeably less confidence in AI when it comes to accuracy and data security. Fewer respondents believe that AI will make hiring decisions more accurate, and even fewer trust that their personal information would be safer under AI systems. This contrast suggests that while AI may be viewed as helpful administratively, it is not yet trusted to handle the deeper responsibilities of judgment or protection that hiring decisions require.
