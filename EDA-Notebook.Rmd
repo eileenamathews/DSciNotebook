@@ -4,51 +4,194 @@ author: "Eileena Mathews, Hayden Pozzi, Rachel Perry, and Richard Liu"
 date: "`r Sys.Date()`"
 output: html_document
 ---
-```{r include=FALSE}
 
+```{r setup, include=FALSE}
+# setup: load libraries and options
+library(tidyverse)
+library(readr)
+library(haven)
+library(janitor)
+library(scales)
+library(stringr)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+set.seed(2025)
 ```
 
 ## Introduction
 
-In recent years, artificial intelligence (AI) has undergone a profound shift in public perception. Once seen primarily as a source of uncertainty or even risk, AI is now becoming something people feel increasingly comfortable with—if not socially or professionally expected to use. From writing assistants and chatbots to algorithmic recommendations in education, finance, and entertainment, AI has become an embedded feature of everyday life. While AI is often discussed through the lens of technical innovation, less attention has been given to how ordinary people experience its integration into their daily routines, decision-making, and institutional contexts.
+In recent years, artificial intelligence (AI) has undergone a profound shift in public perception. Once seen primarily as a source of uncertainty or even risk, AI is now becoming something people feel increasingly comfortable with—if not socially or professionally expected to use. From writing assistants and chatbots to algorithmic recommendations in education, finance, and entertainment, AI has become an embedded feature of everyday life.
 
-To ground our analysis in real-world evidence, we draw on the Public Attitudes to AI dataset produced by the Ada Lovelace Institute in the United Kingdom. This nationally representative survey of over 4,000 UK adults provides insight into public perceptions of AI across 17 application domains, ranging from facial recognition to healthcare triage and welfare eligibility. Unlike purely technical assessments, this dataset centers the public’s trust, perceived benefits, concerns, and expectations of governance—making it uniquely suitable for social inquiry into AI’s impact on socidety. The transparency of its methodology, including sampling, weighting, and question design, positions it as a robust foundation for understanding public sentiment at a pivotal moment in AI adoption.
+To ground our analysis, we use the Public Attitudes to AI dataset produced by the Ada Lovelace Institute (UK). This nationally representative survey of ~4,000 adults provides perceptions across multiple AI application domains. Our aim here is a reproducible initial exploration: inspect structure and missingness, perform light cleaning, compute simple summaries, and visualise perceived benefits of AI in hiring.
 
-Our interest is also informed by emerging research such as Marc Zao-Sanders’ work, “How People Are Really Using Generative AI Now,” featured in the Harvard Business Review. His findings challenge popular narratives by revealing that individuals use AI for personal and professional purposes at around equal rates. 
+## Load data
 
-This raises some of the interesting questions our project seeks to explore: How aware are people of AI in their everyday environments? Do they trust institutions and individuals to use it responsibly? How do attitudes differ across demographic or experiential lines? By analyzing public attitudes through this dataset, we aim to contribute to a growing understanding of how societies negotiate the benefist and risks of AI.
-
-Here's a brief summary of the data set:
-```{r}
-library(readr)
-ai_survey1 <- read_csv("how-do-people-feel-about-ai-main/262400371_Public Attitudes to AI Raw Data NA (1).csv")
-# Prep data
-# Remove ppt identifying as 'other' and remove 16 year old 
-#ai_survey1 <- ai_survey1 %>%
-#  filter(is.na(RS_Sex) | RS_Sex != 3) %>%
-#  filter(CS_Age != "16")
-str(ai_survey1)
+```{r load-data}
+ai_path <- "how-do-people-feel-about-ai-main/262400371_Public Attitudes to AI Raw Data NA (1).csv"
+if (!file.exists(ai_path)) stop("Data file not found: ", ai_path)
+ai_survey1 <- read_csv(ai_path, show_col_types = FALSE)
+glimpse(ai_survey1)
 ```
 
-## PRELIMINARY EXPLORATION
-One variable that interested our group was how comfortable (or uncomfortable) people felt about being evaluated by AI during the job application process. While general attitudes toward AI tend to focus on abstract benefits like efficiency or fairness, the hiring context makes the technology personal. 
+## Inspect variables and missingness
 
-To explore this, we focused on the BENB_JOB series, which asks respondents to select perceived benefits of AI in determining job eligibility. We aimed to understand how people negotiate the tension between potential advantages (such as reducing human bias) and potential discomfort (such as feeling misrepresented or dehumanized by automated systems).
+```{r inspect-variables}
+var_df <- tibble(
+  var = names(ai_survey1),
+  class = map_chr(ai_survey1, ~ class(.x)[1]),
+  missing = map_int(ai_survey1, ~ sum(is.na(.x))),
+  unique_vals = map_int(ai_survey1, ~ n_distinct(.x, na.rm = TRUE))
+) %>% arrange(desc(missing))
 
-```{r}
-library(scales)
-
-top8 <- overall_ben %>% slice_max(pct, n = 8) %>% pull(benefit)
-
-# Overall
-overall_ben %>%
-  filter(benefit %in% top8) %>%
-  ggplot(aes(reorder(benefit, pct), pct)) +
-  geom_col() + coord_flip() +
-  scale_y_continuous(labels = percent) +
-  labs(x = NULL, y = "Weighted % selecting",
-       title = "Perceived benefits of AI in hiring (overall)")
+print(var_df, n = 250)
 ```
-The graph indicates that people recognize certain practical advantages to using AI in hiring, particularly when it comes to making recruiters’ jobs easier and reducing human bias. These benefits received the highest levels of agreement, suggesting that the public sees AI as potentially useful for improving process efficiency and fairness.
 
-However, there is noticeably less confidence in AI when it comes to accuracy and data security. Fewer respondents believe that AI will make hiring decisions more accurate, and even fewer trust that their personal information would be safer under AI systems. This contrast suggests that while AI may be viewed as helpful administratively, it is not yet trusted to handle the deeper responsibilities of judgment or protection that hiring decisions require.
+## Basic cleaning and derived columns
+
+```{r clean-data}
+# Standardise names and add row id
+ai_clean <- ai_survey1 %>%
+  clean_names() %>%
+  mutate(row_id = row_number())
+
+# Detect age column (common names cs_age, csage, cs_age_yrs, age)
+age_col <- names(ai_clean)[str_detect(names(ai_clean), regex("\\b(cs_age|csage|age|age_years|cs_age_yrs)\\b", ignore_case = TRUE))] %>% .[1]
+if (!is.na(age_col)) {
+  ai_clean <- ai_clean %>%
+    mutate(age = as.integer(.data[[age_col]])) %>%
+    filter(is.na(age) | age >= 17)  # remove implausible 16 if present
+}
+
+# Detect sex/gender column
+sex_col <- names(ai_clean)[str_detect(names(ai_clean), regex("^rs_sex$|sex|gender", ignore_case = TRUE))] %>% .[1]
+if (!is.na(sex_col)) {
+  ai_clean <- ai_clean %>%
+    mutate(
+      sex_raw = as.character(.data[[sex_col]]),
+      sex = case_when(
+        sex_raw %in% c("1", 1, "Male", "male", "M") ~ "Male",
+        sex_raw %in% c("2", 2, "Female", "female", "F") ~ "Female",
+        TRUE ~ NA_character_
+      )
+    )
+}
+
+# Detect BENB-like columns and coerce to 0/1 integers where possible
+benb_cols <- names(ai_clean)[str_detect(names(ai_clean), regex("^benb|benb_job|benefit|benefits|benb_", ignore_case = TRUE))]
+if (length(benb_cols) == 0) {
+  benb_cols <- names(ai_clean)[str_detect(names(ai_clean), regex("benefit|benb|job", ignore_case = TRUE))]
+}
+
+if (length(benb_cols) > 0) {
+  ai_clean <- ai_clean %>%
+    mutate(across(all_of(benb_cols), ~ {
+      x <- .
+      # character encodings -> 1/0
+      if (is.character(x)) {
+        xl <- str_to_lower(str_trim(x))
+        as.integer(if_else(xl %in% c("yes","y","1","selected","true","t"), 1L,
+                   if_else(xl %in% c("no","n","0","false","f"), 0L, NA_integer_)))
+      } else if (is.logical(x)) {
+        as.integer(x)
+      } else {
+        # numeric-like: keep 1/0, else NA
+        xi <- suppressWarnings(as.integer(x))
+        if_else(is.na(xi), NA_integer_, xi)
+      }
+    }))
+}
+# quick check
+glimpse(select(ai_clean, any_of(c("age","sex", benb_cols))))
+```
+
+## Derive overall benefit tallies (unweighted)
+
+```{r derive-overall-ben}
+# Use cleaned benb columns and treat 1 as selected
+if (length(benb_cols) > 0) {
+  overall_ben <- ai_clean %>%
+    select(all_of(benb_cols)) %>%
+    mutate(row_id = row_number()) %>%
+    pivot_longer(cols = -row_id, names_to = "benefit_raw", values_to = "selected") %>%
+    filter(!is.na(selected) & selected == 1L) %>%
+    mutate(benefit = benefit_raw) %>%
+    count(benefit) %>%
+    mutate(pct = n / sum(n))
+} else {
+  overall_ben <- tibble(benefit = character(0), n = integer(0), pct = numeric(0))
+  message("No BENB-like columns detected. Check variable names and adjust the detection pattern.")
+}
+
+overall_ben %>% arrange(desc(pct)) %>% print(n = 50)
+```
+
+## Summary statistics
+
+```{r summary-stats}
+# Age summaries
+if ("age" %in% names(ai_clean)) {
+  age_stats <- ai_clean %>%
+    summarise(
+      n = sum(!is.na(age)),
+      mean_age = mean(age, na.rm = TRUE),
+      median_age = median(age, na.rm = TRUE),
+      sd_age = sd(age, na.rm = TRUE),
+      min_age = min(age, na.rm = TRUE),
+      max_age = max(age, na.rm = TRUE)
+    )
+  print(age_stats)
+}
+
+# Sex / gender distribution
+if ("sex" %in% names(ai_clean)) {
+  print(ai_clean %>% count(sex, sort = TRUE) %>% mutate(p = n / sum(n)))
+}
+
+# Top benefits preview
+if (exists("overall_ben") && nrow(overall_ben) > 0) {
+  print(overall_ben %>% arrange(desc(pct)) %>% slice_head(n = 10))
+}
+```
+
+## Visualisations
+
+```{r plots, fig.width=7, fig.height=4}
+# Age histogram
+if ("age" %in% names(ai_clean)) {
+  ggplot(filter(ai_clean, !is.na(age)), aes(age)) +
+    geom_histogram(binwidth = 5, fill = "steelblue", color = "white") +
+    labs(title = "Age distribution", x = "Age", y = "Count")
+}
+
+# Sex / gender bar
+if ("sex" %in% names(ai_clean)) {
+  ggplot(filter(ai_clean, !is.na(sex)), aes(x = fct_infreq(sex))) +
+    geom_bar(fill = "darkorange") +
+    coord_flip() +
+    labs(title = "Sex / Gender distribution", x = NULL, y = "Count")
+}
+
+# Benefits bar (top 8)
+if (exists("overall_ben") && nrow(overall_ben) > 0) {
+  top8 <- overall_ben %>% slice_max(pct, n = 8) %>% pull(benefit)
+  overall_ben %>%
+    filter(benefit %in% top8) %>%
+    ggplot(aes(reorder(benefit, pct), pct)) +
+    geom_col(fill = "steelblue") +
+    coord_flip() +
+    scale_y_continuous(labels = percent) +
+    labs(x = NULL, y = "Unweighted % selecting",
+         title = "Perceived benefits of AI in hiring (top items)")
+}
+```
+
+## Notes and next steps
+
+- Confirm BENB column names and encoding (1/0 vs "Yes"/"No") and update detection patterns if necessary.
+- If a survey weight column exists (common names: weight, wt, wgt), compute weighted percentages before reporting final estimates.
+- Follow-up: demographic cross-tabs, subgroup comparison plots, and simple regression models.
+
+## Session info
+
+```{r session-info}
+sessionInfo()
+```
