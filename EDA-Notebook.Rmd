@@ -48,17 +48,6 @@ overall_ben %>%
   scale_y_continuous(labels = percent) +
   labs(x = NULL, y = "Weighted % selecting",
        title = "Perceived benefits of AI in hiring (overall)")
-
-# Gender comparison for the same top 8
-ben_by_gender %>%
-  filter(benefit %in% top8) %>%
-  ggplot(aes(rs_sex, pct, fill = rs_sex)) +
-  geom_col(position = "dodge") +
-  facet_wrap(~benefit, ncol = 2, scales = "free_y") +
-  scale_y_continuous(labels = percent) +
-  labs(x = NULL, y = "Weighted % selecting", fill = NULL,
-       title = "Benefits of AI in hiring by gender") +
-  theme(legend.position = "bottom")
 ```
 The graph indicates that people recognize certain practical advantages to using AI in hiring, particularly when it comes to making recruiters’ jobs easier and reducing human bias. These benefits received the highest levels of agreement, suggesting that the public sees AI as potentially useful for improving process efficiency and fairness.
 
